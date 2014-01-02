@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+
+<!--
+======== TODO ========
++ bucket scales: integer
++ circles behind bars?
+- hour/day-to-year conversion
+- multiple companies and titles with different colors
++ some padding for the dots so the min max aren't in corners
+- variable size of circles?
+-->
+
+<html>
+    <head>
+        <title>H-1B Salaries Research Helper</title>
+        <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <!-- Bootstrap -->
+        <link href="bootstrap/css/bootstrap.min.css" rel="stylesheet">
+        
+        <style type="text/css">
+            .bottom-buffer {
+                margin-bottom: 20px;
+            }
+            .twitter-share-button {
+                position: relative;
+                top: 3px;
+            }
+        </style>
+
+        <style type="text/css">
+            svg {
+                font-size: 14px;
+            }
+
+            .axis {
+                shape-rendering: crispEdges;
+            }
+
+            .axis path {
+                display: none;
+            }
+            .axis line {
+                stroke: #ddd;
+                stroke-width: .5px;
+            }
+
+            rect.extent {
+                fill: #000;
+                fill-opacity: .125;
+                stroke: #fff;
+            }
+
+            rect.frame {
+                fill: #fff;
+                fill-opacity: 0;
+                stroke: #aaa;
+            }
+
+            circle {
+                fill: #8888CC;
+                /*fill-opacity: .5;*/
+            }
+
+            .legend circle {
+                fill-opacity: 1;
+            }
+
+            .legend text {
+                font-size: 18px;
+                font-style: oblique;
+            }
+
+            .area text {
+                pointer-events: none;
+            }
+
+            .setosa {
+            fill: #800;
+            }
+
+            .versicolor {
+            fill: #080;
+            }
+
+            .virginica {
+            fill: #008;
+            }
+        </style>
+
+        <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+        <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+        <!--[if lt IE 9]>
+        <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+        <script src="https://oss.maxcdn.com/libs/respond.js/1.3.0/respond.min.js"></script>
+        <![endif]-->
+    </head>
+    <body>
+        <div class="container">
+            <div class="row bottom-buffer">
+                <div class="col-md-11 col-md-offset-1">
+                    <h2>H-1B Salaries Research Helper</h2>
+                </div>
+            </div>
+            
+            <form class="form-horizontal" role="form">
+                <div class="form-group">
+                    <label for="companiesInput" class="col-md-2 control-label">
+                        Companies
+                    </label>
+                    <div class="col-md-2">
+                        <select id="companiesSelect" class="form-control">
+                            <option selected="selected" value="SPECIAL_ALL_COMPANIES">All</option>
+                            <option value="MICROSOFT">Microsoft</option>
+                            <option value="GOOGLE">Google</option>
+                            <option value="FACEBOOK">Facebook</option>
+                            <option value="TWITTER">Twitter</option>
+                            <option value="APPLE">Apple</option>
+                            <option value="ROCKET FUEL">Rocket Fuel</option>
+                            <option value="YELP">Yelp</option>
+                            <option value="AMAZON">Amazon</option>
+                            <option value="DROPBOX">Dropbox</option>
+                            <option value="FOURSQUARE">Foursquare</option>
+                            <option value="JETBRAINS">JetBrains</option>
+                        </select>
+                    </div>
+                    <div class="col-md-8">
+                        <input type="text" class="form-control" id="companiesInput" placeholder="Companies to research, comma-separated" />
+                    </div>
+                </div>
+            
+                <div class="form-group">
+                    <label for="jobtitlesInput" class="col-md-2 control-label">
+                        Job titles
+                    </label>
+                    <div class="col-md-2">
+                        <select id="jobtitlesSelect" class="form-control">
+                            <option selected="selected" value="SPECIAL_ALL_JOBTITLES">All</option>
+                            <option value="SOFTWARE,ENGINEER,DEVELOPER,PROGRAMMER,ENG">Engineers</option>
+                            <option value="MANAGER">Managers</option>
+                            <option value="CONSULTANT">Consultants</option>
+                            <option value="CEO,CHIEF EXECUTIVE OFFICER">CEOs</option>
+                        </select>
+                    </div>
+                    <div class="col-md-8">
+                        <input type="text" class="form-control" id="jobtitlesInput" placeholder="Job titles to research, comma-separated" />
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="minimalWageInput" class="col-md-2 control-label">
+                        Range to display
+                    </label>
+                    <div class="col-md-2">
+                        <label for="minimalWageInput" class="control-label">
+                            from
+                        </label>
+                        <input type="text" class="form-control" id="minimalWageInput" placeholder="Minimal salary" value="0" />
+                    </div>
+                    <div class="col-md-2">
+                        <label for="maximalWageInput" class="control-label">
+                            to
+                        </label>
+                        <input type="text" class="form-control" id="maximalWageInput" placeholder="Maximal salary" value="300000" />
+                    </div>
+                    <div class="col-md-6">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <div class="col-md-10 col-md-offset-2">
+                        <button type="button" id="researchButton" class="btn btn-primary">Research salaries</button>
+                    </div>
+                </div>
+            </form>
+            
+            <div class="row">
+                <div id="svgContainer"></div>
+            </div>
+            
+            <div class="row footer bottom-buffer">
+                <div class="col-md-3 col-md-offset-2">
+                    <div class="h5" style="float: left">
+                        <small>Made in the U.S.A. by <a href="http://sergey.serebryakov.info">megaserg</a>.</small><br />
+                        <small>Built with jQuery, Bootstrap and d3.</small><br />
+                        <small>Data source: <a href="http://www.foreignlaborcert.doleta.gov/performancedata.cfm#dis">US Department of Labor</a>, 2013.</small>
+                    </div>
+                </div>
+                <div class="col-md-7">
+                    <div>
+                        <a href="https://twitter.com/share" class="twitter-share-button" data-via="megaserg" data-size="large" data-count="none" data-dnt="true">Tweet</a>
+                        <script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');</script>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+        <script src="https://code.jquery.com/jquery.js"></script>
+        <!-- Include all compiled plugins (below), or include individual files as needed -->
+        <script src="bootstrap/js/bootstrap.js"></script>
+        <script src="d3/d3.v3.js"></script>
+        
+        <script src="plotting.js"></script>
+    </body>
+</html>
+
+
+    <!--
+    <link type="text/css" rel="stylesheet" href="style.css" />
+    <link type="text/css" rel="stylesheet" href="plot.css" />
+    -->
+    <!--
+    <script type="text/javascript" src="d3/d3.js"></script>
+    <script type="text/javascript" src="d3/d3.csv.js"></script>
+    <script type="text/javascript" src="iris.js"></script>
+    -->
