@@ -1,40 +1,65 @@
 window.dataPoints = null;
 
+COMPANIES_SELECT_ID = "select#companiesSelect";
+COMPANIES_INPUT_ID = "input#companiesInput";
+JOBTITLES_SELECT_ID = "select#jobTitlesSelect";
+JOBTITLES_INPUT_ID = "input#jobTitlesInput";
+RESEARCH_BUTTON_ID = "button#researchButton";
+
+SPECIAL_ALL_COMPANIES = "ALL_COMPANIES";
+SPECIAL_ALL_JOBTITLES = "ALL_JOBTITLES";
+
+ARRAY_ENTRIES_DELIMITER = ",";
+INTERNAL_CLAUSES_DELIMITER = "/";
+
+DEFAULT_MINIMAL_WAGE = 80000;
+DEFAULT_MAXIMAL_WAGE = 200000;
+
+DATA_FILE_SIZE = 24224476;
+
 loadCSV = function() {
-    var objects = d3.csv(
-        "data/H-1B_FY13_Q4_filtered.csv",
-        function(entry) {
-            return {
-                employer: entry.Employer,
-                jobTitle: entry.JobTitle,
-                wage: +entry.Wage,
-                city: entry.City,
-                state: entry.State,
-            };
-        },
-        function(error, objects) {
-            window.dataPoints = objects;
-            //research button make active
-        }
-    );
+    var formatPercent = d3.format(".0%");
+
+    var objects = d3.csv("data/H-1B_FY13_Q4_filtered.csv")
+        .row(function(entry) {
+                 return {
+                     employer: entry.Employer,
+                     jobTitle: entry.JobTitle,
+                     wage: +entry.Wage,
+                     city: entry.City,
+                     state: entry.State,
+                 };
+             })
+        .on("progress",
+            function() {
+                var progress = d3.event.loaded / DATA_FILE_SIZE;
+                var meter = $(".progress-meter");
+                meter.text("Loading data (" + formatPercent(progress) + ")...");
+                console.log(d3.event.loaded, DATA_FILE_SIZE, progress, formatPercent(progress)); 
+            })
+        .get(function(error, objects) {
+                window.dataPoints = objects;
+                $(".progress-meter").hide();
+                $(RESEARCH_BUTTON_ID).show();
+             });
 };
 
-filter = function(objects) {
-    var currentCompany = $("#companiesSelect").val();
-    var currentJobTitle = $("#jobtitlesSelect").val();
-    var minimalWage = parseInt($("#minimalWageInput").val()) || 0;
-    var maximalWage = parseInt($("#maximalWageInput").val()) || 300000;
+/*filter = function(objects) {
+    var currentCompany = $(COMPANIES_SELECT_ID).val();
+    var currentJobTitle = $(JOBTITLES_SELECT_ID).val();
+    var minimalWage = parseInt($("#minimalWageInput").val()) || DEFAULT_MINIMAL_WAGE;
+    var maximalWage = parseInt($("#maximalWageInput").val()) || DEFAULT_MAXIMAL_WAGE;
                    
     var criteria = function(obj) {
         // check company first
-        if (currentCompany == "SPECIAL_ALL_COMPANIES" || obj.employer.indexOf(currentCompany) != -1) {
+        if (currentCompany == SPECIAL_ALL_COMPANIES || obj.employer.indexOf(currentCompany) != -1) {
             // now check wages
             if (minimalWage <= obj.wage && obj.wage <= maximalWage) {
                 // now check titles
-                if (currentJobTitle == "SPECIAL_ALL_JOBTITLES") {
+                if (currentJobTitle == SPECIAL_ALL_JOBTITLES) {
                     return true;
                 }
-                var titles = currentJobTitle.split(",");
+                var titles = currentJobTitle.split(INTERNAL_CLAUSES_DELIMITER);
                 for (var i in titles) {
                     var title = titles[i];
                     if (obj.jobTitle.indexOf(title) != -1) {
@@ -47,7 +72,7 @@ filter = function(objects) {
     };
     
     return objects.filter(criteria);
-};
+};*/
 
 sortByWage = function(objects) {
     var compareWage = function(a, b) {
@@ -68,19 +93,21 @@ index = function(objects) {
     return objects;
 }
 
-getScales = function(objects, dims, padding) {
-    var getIndex = function(o) { return o.index; };
+getScales = function(series, dims, padding) {
     var getWage = function(o) { return o.wage; };
-    var minWage = d3.min(objects, getWage),
-        maxWage = d3.max(objects, getWage);
+    var minWageInRow = function(row) { return d3.min(row.objects, getWage); };
+    var maxWageInRow = function(row) { return d3.max(row.objects, getWage); };
+    var minWage = d3.min(series, minWageInRow),
+        maxWage = d3.max(series, maxWageInRow);
     var wageMargin = (maxWage - minWage) * 0.03;
-    var xDomain = [-0.01, 1.01];
-    var yDomain = [minWage - wageMargin, maxWage + wageMargin];
+    var xDomain = [minWage - wageMargin, maxWage + wageMargin];
+    var yDomain = [-0.01, 1.01];
     var xRange = [padding.left, dims.width - padding.right];
     var yRange = [padding.top, dims.height - padding.bottom];
     var x = d3.scale.linear().domain(xDomain).range(xRange);
     var y = d3.scale.linear().domain(yDomain).range(yRange.reverse());
-    return {"x": x, "y": y};
+    var color = d3.scale.category20();
+    return {"x": x, "y": y, "color": color};
 };
 
 plotAxis = function(svg, dims, padding, scales) {
@@ -88,13 +115,15 @@ plotAxis = function(svg, dims, padding, scales) {
     var xAxis = d3.svg.axis()
         .ticks(10)
         .tickSize(dims.height - padding.vert)
-        .tickFormat(function(d) { return Math.floor(d * 100) + "%"; })
+        //.tickFormat(function(d) { return Math.floor(d * 100) + "%"; })
+        .tickFormat(function(d) { return formatWage(d); })
         .scale(scales.x)
         .orient("bottom");
     var yAxis = d3.svg.axis()
         .ticks(10)
         .tickSize(dims.width - padding.hori)
-        .tickFormat(function(d) { return formatWage(d); })
+        //.tickFormat(function(d) { return formatWage(d); })
+        .tickFormat(function(d) { return Math.floor(d * 100) + "%"; })
         .scale(scales.y)
         .orient("left");
     svg.append("svg:g")
@@ -107,34 +136,49 @@ plotAxis = function(svg, dims, padding, scales) {
         .call(yAxis);
 };
                     
-plotLegend = function(svg) {
+plotLegend = function(svg, dims, scales, series) {
+    var n = series.length;
+    
     var legend = svg.selectAll("g.legend")
-        .data(["field 1", "field 2", "field 3"])
+        .data(series)
         .enter()
         .append("svg:g")
         .classed("legend", true)
-        .attr("transform", function(d, i) { return "translate(10," + (i * 20 + 594) + ")"; });
+        .attr("transform", function(d, i) {
+            return "translate(" + (dims.width - 350) + "," + (dims.height - n * 20 - 30 + i * 20) + ")"; 
+        });
 
     legend.append("svg:circle")
-        .attr("class", String)
-        .attr("r", 3);
+        //.attr("class", String)
+        .attr("r", 5)
+        .attr("fill", function(d, i) { return scales.color(i); });
+    
+    var abbreviate = function(str) {
+        var MAX_LENGTH = 13;
+        if (str.length > MAX_LENGTH) {
+            return str.substr(0, MAX_LENGTH) + "…";
+        }
+        return str;
+    };
 
     legend.append("svg:text")
         .attr("x", 12)
         .attr("dy", ".31em")
-        .text(function(d) { return d; });
+        .text(function(d) { return abbreviate(d.jobTitle) + " at " + d.company; });
 };
 
 plotInfoLabel = function(svg) {
     var label = svg
         .append("svg:text")
-        .attr({"id": "infoLabel", "x": 100, "y": 100})
-        .style({"font-size": "24px", "font-weight": "bold", "fill": "#ddd"});
+        .attr({"id": "infoLabel", "x": 100, "y": 50})
+        .style({"font-size": "24px", "font-weight": "bold", "fill": "#bbb"});
         
     label.append("svg:tspan")
         .attr({"id": "employerLabel", "x": 100, "dy": 27});
     label.append("svg:tspan")
         .attr({"id": "jobTitleLabel", "x": 100, "dy": 27});
+    label.append("svg:tspan")
+        .attr({"id": "cityStateLabel", "x": 100, "dy": 27});
     label.append("svg:tspan")
         .attr({"id": "wageLabel", "x": 100, "dy": 27});
 };
@@ -153,7 +197,7 @@ plotBrush = function(where) {
     //where.call(brush.x(x[p.x]).y(y[p.y]));
 };
 
-plotPoints = function(where, scales, objects) {
+plotPoints = function(where, scales, objects, color) {
     var formatWage = d3.format("$,d");
 
     var circ = where.selectAll("circle")
@@ -161,13 +205,15 @@ plotPoints = function(where, scales, objects) {
     
     circ.enter().insert("svg:circle")
         .attr("class", "dataPoint")
-        .attr("cx", function(d) { return scales.x(d.index); })
-        .attr("cy", function(d) { return scales.y(d.wage); })
+        .attr("cx", function(d) { return scales.x(d.wage); }) // modified here
+        .attr("cy", function(d) { return scales.y(d.index); }) // modified here
+        .attr("fill", color)
         .attr("r", 3)
         .style("cursor", "pointer")
         .on("mouseover", function(d) {
             d3.select("svg #employerLabel").text(d.employer);
             d3.select("svg #jobTitleLabel").text(d.jobTitle);
+            d3.select("svg #cityStateLabel").text(d.city + ", " + d.state);
             d3.select("svg #wageLabel").text(formatWage(d.wage));
             d3.select("svg #infoLabel")
                 .transition()
@@ -232,62 +278,64 @@ plotArea = function(svg) {
         .classed("area", true);
     return area;
 }
-            
-redraw = function() {
-    //erase axis
-    //draw new axis
-    //erase points
-    //draw new points
-};
 
-plot = function(objects) {
+plot = function(series) {
     //d3.select("svg").remove();
     if (window.svg) {
         d3.selectAll(".axis").remove();
+        d3.selectAll(".legend").remove();
         d3.selectAll(".frame").remove();
         d3.selectAll("#infoLabel").remove();
         d3.selectAll(".area").remove();
-        //d3.selectAll(".dataPoint").remove();
+        // not needed as we remove area: d3.selectAll(".dataPoint").remove();
     }
 
     var dims = getDimensions();
     var padding = getPadding();
     window.svg = window.svg || plotSvg(dims);
-    scales = getScales(objects, dims, padding);
+    scales = getScales(series, dims, padding);
     
     plotAxis(svg, dims, padding, scales);
-    //plotLegend(svg);
     plotFrame(svg, dims, padding);
     plotInfoLabel(svg);
-    area = plotArea(svg);
+    plotLegend(svg, dims, scales, series);
     //plotBrush(svg);
-    plotPoints(area, scales, objects);
+    for (var i in series) {
+        area = plotArea(svg);
+        plotPoints(area, scales, series[i].objects, scales.color(i));
+    }
 };
 
-parseCompaniesInputField = function() {
-    var value = $("companiesInput").text();
-    return value.split(",");
+readArrayFromInputField = function(id) {
+    var value = $(id).val();
+    var array = value.split(ARRAY_ENTRIES_DELIMITER);
+    return array.filter(function(s) {return s.length > 0;});
 };
 
-parseJobTitlesInputField = function() {
-    var value = $("jobTitlesInput").text();
-    return value.split(",");
+writeArrayToInputField = function(id, value) {
+    $(id).val(value.join(ARRAY_ENTRIES_DELIMITER));
 };
 
-onCompanySelect = function(event) {
-    company = optionValue;
-    array = companyInput.text();
-    if (company == "ALL") {
+updateArrayValue = function(selectID, inputID, specialAll) {
+    var currentValue = $(selectID).val();
+    if (currentValue == specialAll) {
         array = [];
     }
     else {
-        array.push(company);
+        var array = readArrayFromInputField(inputID);
+        if (array.indexOf(currentValue) == -1) {
+            array.push(currentValue);
+        }
     }
-    companyInput.text("array");
+    writeArrayToInputField(inputID, array);
 };
 
-onJobTitleSelect = function(event) {
-    //...
+onCompaniesSelectChange = function(event) {
+    updateArrayValue(COMPANIES_SELECT_ID, COMPANIES_INPUT_ID, SPECIAL_ALL_COMPANIES);
+}
+
+onJobTitlesSelectChange = function(event) {
+    updateArrayValue(JOBTITLES_SELECT_ID, JOBTITLES_INPUT_ID, SPECIAL_ALL_JOBTITLES);
 };
 
 generateSeries = function(objects) {
@@ -296,12 +344,12 @@ generateSeries = function(objects) {
             // check wages first
             if (minWage <= obj.wage && obj.wage <= maxWage) {
                 // now check company
-                if (company == "SPECIAL_ALL_COMPANIES" || obj.employer.indexOf(company) != -1) {
+                if (company == SPECIAL_ALL_COMPANIES || obj.employer.indexOf(company) != -1) {
                     // now check titles
-                    if (jobTitle == "SPECIAL_ALL_JOBTITLES") {
+                    if (jobTitle == SPECIAL_ALL_JOBTITLES) {
                         return true;
                     }
-                    var titles = jobTitle.split(",");
+                    var titles = jobTitle.split(INTERNAL_CLAUSES_DELIMITER);
                     for (var i in titles) {
                         var title = titles[i];
                         if (obj.jobTitle.indexOf(title) != -1) {
@@ -315,7 +363,12 @@ generateSeries = function(objects) {
         var filterCriteria = function(object) {
             return isQualifying(object, company, jobTitle, minWage, maxWage);
         };
-        return objects.filter(filterCriteria);
+        
+        var serie = {};
+        serie.objects = objects.filter(filterCriteria);
+        serie.company = company;
+        serie.jobTitle = jobTitle;
+        return serie;
     };
     
     var generateSeriesForJobTitles = function(company, jobTitles, minWage, maxWage, series) {
@@ -326,7 +379,7 @@ generateSeries = function(objects) {
             }
         }
         else {
-            series.push(createNewSeries(company, "SPECIAL_ALL_JOBTITLES", minWage, maxWage));
+            series.push(createNewSeries(company, SPECIAL_ALL_JOBTITLES, minWage, maxWage));
         }
     };
     
@@ -338,14 +391,14 @@ generateSeries = function(objects) {
             }
         }
         else {
-            generateSeriesForJobTitles("SPECIAL_ALL_COMPANIES", jobTitles, minWage, maxWage, series);
+            generateSeriesForJobTitles(SPECIAL_ALL_COMPANIES, jobTitles, minWage, maxWage, series);
         }
     }
     
-    var companies = parseCompaniesInputField(); // may be empty
-    var jobTitles = parseJobTitlesInputField(); // may be empty
-    var minWage = parseInt($("#minimalWageInput").val()) || 0;
-    var maxWage = parseInt($("#maximalWageInput").val()) || 300000;
+    var companies = readArrayFromInputField(COMPANIES_INPUT_ID); // may be empty
+    var jobTitles = readArrayFromInputField(JOBTITLES_INPUT_ID); // may be empty
+    var minWage = parseInt($("#minimalWageInput").val()) || DEFAULT_MINIMAL_WAGE;
+    var maxWage = parseInt($("#maximalWageInput").val()) || DEFAULT_MAXIMAL_WAGE;
     
     var series = [];
     generateSeriesForCompanies(companies, jobTitles, minWage, maxWage, series);
@@ -355,21 +408,31 @@ generateSeries = function(objects) {
 onResearchClick = function(event) {
     if (window.dataPoints) {
         //plot(filter(window.dataPoints)
-        var filtered = filter(window.dataPoints);
-        var sorted = sortByWage(filtered);
-        var indexed = index(sorted);
-        indexed.reverse().slice(0,10).map(function(x) { console.log(x.wage, x.index); });
-        plot(indexed);
+        //var filtered = filter(window.dataPoints);
+        //var sorted = sortByWage(filtered);
+        //var indexed = index(sorted);
+        
+        var series = generateSeries(window.dataPoints);
+        for (var i in series) {
+            var objects = series[i].objects;
+            var sorted = sortByWage(objects);
+            var indexed = index(sorted);
+            series[i].objects = indexed;
+        }
+        
+        //indexed.reverse().slice(0,10).map(function(x) { console.log(x.wage, x.index); });
+        plot(series);
     }
     else {
         alert("Data is not loaded yet!");
     }
 };
 
-
 onPageLoad = function(event) {
+    $(RESEARCH_BUTTON_ID).click(onResearchClick);
+    $(COMPANIES_SELECT_ID).change(onCompaniesSelectChange);
+    $(JOBTITLES_SELECT_ID).change(onJobTitlesSelectChange);
     loadCSV();
-    $("#researchButton").click(onResearchClick);    
-}
+};
 
 $(window).load(onPageLoad);

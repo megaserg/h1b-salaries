@@ -5,14 +5,18 @@
 + bucket scales: integer
 + circles behind bars?
 - hour/day-to-year conversion
-- multiple companies and titles with different colors
++ multiple companies and titles with different colors
++ legend
+- brush?
+- dynamic population of selects?
 + some padding for the dots so the min max aren't in corners
 - variable size of circles?
+- automatic refresh?
 -->
 
 <html>
     <head>
-        <title>H-1B Salaries Research Helper</title>
+        <title>H-1B Salaries Distribution</title>
         <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <!-- Bootstrap -->
@@ -25,6 +29,22 @@
             .twitter-share-button {
                 position: relative;
                 top: 3px;
+            }
+        </style>
+        
+        <style type="text/css">
+            .progress-meter .background {
+              fill: #ccc;
+            }
+
+            .progress-meter .foreground {
+              fill: #000;
+            }
+
+            .progress-meter {
+              font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+              font-size: 24px;
+              font-weight: bold;
             }
         </style>
 
@@ -58,7 +78,7 @@
             }
 
             circle {
-                fill: #8888CC;
+                /*fill: #8888CC;*/
                 /*fill-opacity: .5;*/
             }
 
@@ -67,24 +87,14 @@
             }
 
             .legend text {
+                font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
                 font-size: 18px;
-                font-style: oblique;
+                font-weight: bold;
+                fill: #555;
             }
 
             .area text {
                 pointer-events: none;
-            }
-
-            .setosa {
-            fill: #800;
-            }
-
-            .versicolor {
-            fill: #080;
-            }
-
-            .virginica {
-            fill: #008;
             }
         </style>
 
@@ -99,7 +109,7 @@
         <div class="container">
             <div class="row bottom-buffer">
                 <div class="col-md-11 col-md-offset-1">
-                    <h2>H-1B Salaries Research Helper</h2>
+                    <h2>H-1B Salaries Distribution</h2>
                 </div>
             </div>
             
@@ -110,13 +120,14 @@
                     </label>
                     <div class="col-md-2">
                         <select id="companiesSelect" class="form-control">
-                            <option selected="selected" value="SPECIAL_ALL_COMPANIES">All</option>
+                            <option selected="selected" value="ALL_COMPANIES">All</option>
                             <option value="MICROSOFT">Microsoft</option>
                             <option value="GOOGLE">Google</option>
                             <option value="FACEBOOK">Facebook</option>
                             <option value="TWITTER">Twitter</option>
                             <option value="APPLE">Apple</option>
                             <option value="ROCKET FUEL">Rocket Fuel</option>
+                            <option value="EVERNOTE">Evernote</option>
                             <option value="YELP">Yelp</option>
                             <option value="AMAZON">Amazon</option>
                             <option value="DROPBOX">Dropbox</option>
@@ -130,20 +141,20 @@
                 </div>
             
                 <div class="form-group">
-                    <label for="jobtitlesInput" class="col-md-2 control-label">
+                    <label for="jobTitlesInput" class="col-md-2 control-label">
                         Job titles
                     </label>
                     <div class="col-md-2">
-                        <select id="jobtitlesSelect" class="form-control">
-                            <option selected="selected" value="SPECIAL_ALL_JOBTITLES">All</option>
-                            <option value="SOFTWARE,ENGINEER,DEVELOPER,PROGRAMMER,ENG">Engineers</option>
+                        <select id="jobTitlesSelect" class="form-control">
+                            <option selected="selected" value="ALL_JOBTITLES">All</option>
+                            <option value="SOFTWARE/ENGINEER/DEVELOPER/PROGRAMMER/ENG">Engineers</option>
                             <option value="MANAGER">Managers</option>
                             <option value="CONSULTANT">Consultants</option>
-                            <option value="CEO,CHIEF EXECUTIVE OFFICER">CEOs</option>
+                            <option value="CEO/CHIEF EXECUTIVE OFFICER">CEOs</option>
                         </select>
                     </div>
                     <div class="col-md-8">
-                        <input type="text" class="form-control" id="jobtitlesInput" placeholder="Job titles to research, comma-separated" />
+                        <input type="text" class="form-control" id="jobTitlesInput" placeholder="Job titles to research, comma-separated" />
                     </div>
                 </div>
                 
@@ -155,13 +166,13 @@
                         <label for="minimalWageInput" class="control-label">
                             from
                         </label>
-                        <input type="text" class="form-control" id="minimalWageInput" placeholder="Minimal salary" value="0" />
+                        <input type="text" class="form-control" id="minimalWageInput" placeholder="Minimal salary" value="80000" />
                     </div>
                     <div class="col-md-2">
                         <label for="maximalWageInput" class="control-label">
                             to
                         </label>
-                        <input type="text" class="form-control" id="maximalWageInput" placeholder="Maximal salary" value="300000" />
+                        <input type="text" class="form-control" id="maximalWageInput" placeholder="Maximal salary" value="200000" />
                     </div>
                     <div class="col-md-6">
                     </div>
@@ -169,7 +180,8 @@
                 
                 <div class="form-group">
                     <div class="col-md-10 col-md-offset-2">
-                        <button type="button" id="researchButton" class="btn btn-primary">Research salaries</button>
+                        <div class="progress-meter"></div>
+                        <button type="button" id="researchButton" class="btn btn-primary" style="display: none">Research salaries</button>
                     </div>
                 </div>
             </form>
@@ -201,6 +213,7 @@
         <script src="bootstrap/js/bootstrap.js"></script>
         <script src="d3/d3.v3.js"></script>
         
+<!--         <script src="progress-meter.js"></script> -->
         <script src="plotting.js"></script>
     </body>
 </html>
