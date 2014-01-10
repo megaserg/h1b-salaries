@@ -1,10 +1,10 @@
 window.dataPoints = null;
 
-COMPANIES_SELECT_ID = "select#companiesSelect";
 COMPANIES_INPUT_ID = "input#companiesInput";
-JOBTITLES_SELECT_ID = "select#jobTitlesSelect";
 JOBTITLES_INPUT_ID = "input#jobTitlesInput";
 RESEARCH_BUTTON_ID = "button#researchButton";
+COMPANIES_LIST_ID = "ul#companiesList";
+JOBTITLES_LIST_ID = "ul#jobTitlesList";
 
 SPECIAL_ALL_COMPANIES = "ALL_COMPANIES";
 SPECIAL_ALL_JOBTITLES = "ALL_JOBTITLES";
@@ -12,10 +12,40 @@ SPECIAL_ALL_JOBTITLES = "ALL_JOBTITLES";
 ARRAY_ENTRIES_DELIMITER = ",";
 INTERNAL_CLAUSES_DELIMITER = "/";
 
+LOGGER_URL = "logger.php";
+
 DEFAULT_MINIMAL_WAGE = 80000;
 DEFAULT_MAXIMAL_WAGE = 200000;
 
-DATA_FILE_SIZE = 24224476;
+DATA_FILE_SIZE = 26431268;
+
+companies = [
+    {value: "ALL_COMPANIES", view: "All"},
+    {value: "MICROSOFT", view: "Microsoft"},
+    {value: "GOOGLE", view: "Google"},
+    {value: "FACEBOOK", view: "Facebook"},
+    {value: "TWITTER", view: "Twitter"},
+    {value: "APPLE", view: "Apple"},
+    {value: "CISCO SYSTEMS", view: "Cisco"},
+    {value: "INTEL CORPORATION", view: "Intel"},
+    {value: "ROCKET FUEL", view: "Rocket Fuel"},
+    {value: "EVERNOTE", view: "Evernote"},
+    {value: "YELP", view: "Yelp"},
+    {value: "AMAZON", view: "Amazon"},
+    {value: "DROPBOX", view: "Dropbox"},
+    {value: "FOURSQUARE", view: "Foursquare"},
+    {value: "JETBRAINS", view: "JetBrains"},
+];
+
+jobTitles = [
+    {value: "ALL_JOBTITLES", view: "All"},
+    {value: "SOFTWARE/ENGINEER/DEVELOPER/PROGRAMMER/ENG/ROCKET SCIENTIST", view: "Engineers"},
+    {value: "SENIOR SOFTWARE/SENIOR ENGINEER/SENIOR DEVELOPER/SENIOR PROGRAMMER/SR. SOFTWARE/SR. ENGINEER/SR. DEVELOPER/SR. PROGRAMMER/SENIOR ROCKET SCIENTIST", view: "Senior engineers"},
+    {value: "SCIENTIST", view: "Scientists"},
+    {value: "MANAGER", view: "Managers"},
+    {value: "CONSULTANT", view: "Consultants"},
+    {value: "CEO/CHIEF EXECUTIVE OFFICER", view: "CEOs"},
+];
 
 loadCSV = function() {
     var formatPercent = d3.format(".0%");
@@ -28,6 +58,7 @@ loadCSV = function() {
                      wage: +entry.Wage,
                      city: entry.City,
                      state: entry.State,
+                     //jobField: entry.JobField
                  };
              })
         .on("progress",
@@ -44,53 +75,12 @@ loadCSV = function() {
              });
 };
 
-/*filter = function(objects) {
-    var currentCompany = $(COMPANIES_SELECT_ID).val();
-    var currentJobTitle = $(JOBTITLES_SELECT_ID).val();
-    var minimalWage = parseInt($("#minimalWageInput").val()) || DEFAULT_MINIMAL_WAGE;
-    var maximalWage = parseInt($("#maximalWageInput").val()) || DEFAULT_MAXIMAL_WAGE;
-                   
-    var criteria = function(obj) {
-        // check company first
-        if (currentCompany == SPECIAL_ALL_COMPANIES || obj.employer.indexOf(currentCompany) != -1) {
-            // now check wages
-            if (minimalWage <= obj.wage && obj.wage <= maximalWage) {
-                // now check titles
-                if (currentJobTitle == SPECIAL_ALL_JOBTITLES) {
-                    return true;
-                }
-                var titles = currentJobTitle.split(INTERNAL_CLAUSES_DELIMITER);
-                for (var i in titles) {
-                    var title = titles[i];
-                    if (obj.jobTitle.indexOf(title) != -1) {
-                        return true;
-                    }
-                }
-            }
-        }
-        return false;
-    };
-    
-    return objects.filter(criteria);
-};*/
-
 sortByWage = function(objects) {
     var compareWage = function(a, b) {
         return a.wage - b.wage;
     };
     
     return objects.sort(compareWage);
-}
-
-index = function(objects) {
-    var n = objects.length;
-    var counter = 0;
-    var assignIndex = function(object) {
-        object.index = (++counter) / n;
-    };
-    
-    objects.forEach(assignIndex);
-    return objects;
 }
 
 getScales = function(series, dims, padding) {
@@ -145,7 +135,7 @@ plotLegend = function(svg, dims, scales, series) {
         .append("svg:g")
         .classed("legend", true)
         .attr("transform", function(d, i) {
-            return "translate(" + (dims.width - 350) + "," + (dims.height - n * 20 - 30 + i * 20) + ")"; 
+            return "translate(" + (dims.width - 380) + "," + (dims.height - n * 20 - 30 + i * 20) + ")"; 
         });
 
     legend.append("svg:circle")
@@ -198,6 +188,7 @@ plotBrush = function(where) {
 };
 
 plotPoints = function(where, scales, objects, color) {
+    var n = objects.length;
     var formatWage = d3.format("$,d");
 
     var circ = where.selectAll("circle")
@@ -206,7 +197,7 @@ plotPoints = function(where, scales, objects, color) {
     circ.enter().insert("svg:circle")
         .attr("class", "dataPoint")
         .attr("cx", function(d) { return scales.x(d.wage); }) // modified here
-        .attr("cy", function(d) { return scales.y(d.index); }) // modified here
+        .attr("cy", function(d, i) { return scales.y((i+1) / n); })
         .attr("fill", color)
         .attr("r", 3)
         .style("cursor", "pointer")
@@ -219,12 +210,16 @@ plotPoints = function(where, scales, objects, color) {
                 .transition()
                 .duration(50)
                 .style("opacity", 1);
+            d3.select(this)
+                .attr("r", 5);
         })
         .on("mouseout", function(d) {
             d3.select("svg #infoLabel")
                 .transition()
                 .duration(200)
                 .style("opacity", 0);
+            d3.select(this)
+                .attr("r", 3);
         });
         
     /*circ.transition()
@@ -257,7 +252,7 @@ getDimensions = function() {
 };
 
 getPadding = function() {
-    var padding = { left: 70, right: 10, top: 10, bottom: 25 };
+    var padding = { left: 40, right: 10, top: 10, bottom: 25 };
     padding.hori = padding.left + padding.right;
     padding.vert = padding.top + padding.bottom;
     return padding;
@@ -309,33 +304,37 @@ plot = function(series) {
 readArrayFromInputField = function(id) {
     var value = $(id).val();
     var array = value.split(ARRAY_ENTRIES_DELIMITER);
-    return array.filter(function(s) {return s.length > 0;});
+    return array
+        .map(function(s) {return s.trim().toUpperCase();})
+        .filter(function(s) {return s.length > 0;});
 };
 
 writeArrayToInputField = function(id, value) {
     $(id).val(value.join(ARRAY_ENTRIES_DELIMITER));
 };
 
-updateArrayValue = function(selectID, inputID, specialAll) {
-    var currentValue = $(selectID).val();
-    if (currentValue == specialAll) {
-        array = [];
-    }
-    else {
-        var array = readArrayFromInputField(inputID);
-        if (array.indexOf(currentValue) == -1) {
-            array.push(currentValue);
-        }
+updateArrayValue = function(currentValue, inputID) {
+    var array = readArrayFromInputField(inputID);
+    if (array.indexOf(currentValue) == -1) {
+        array.push(currentValue);
     }
     writeArrayToInputField(inputID, array);
 };
 
-onCompaniesSelectChange = function(event) {
-    updateArrayValue(COMPANIES_SELECT_ID, COMPANIES_INPUT_ID, SPECIAL_ALL_COMPANIES);
-}
-
-onJobTitlesSelectChange = function(event) {
-    updateArrayValue(JOBTITLES_SELECT_ID, JOBTITLES_INPUT_ID, SPECIAL_ALL_JOBTITLES);
+readInputs = function() {
+    var companies = readArrayFromInputField(COMPANIES_INPUT_ID); // may be empty
+    var jobTitles = readArrayFromInputField(JOBTITLES_INPUT_ID); // may be empty
+    var minWage = parseInt($("#minimalWageInput").val(), 10);
+    if (isNaN(minWage)) minWage = DEFAULT_MINIMAL_WAGE;
+    var maxWage = parseInt($("#maximalWageInput").val(), 10);
+    if (isNaN(maxWage)) maxWage = DEFAULT_MAXIMAL_WAGE;
+    
+    return {
+        "companies": companies,
+        "jobTitles": jobTitles,
+        "minWage": minWage,
+        "maxWage": maxWage,
+    };
 };
 
 generateSeries = function(objects) {
@@ -395,14 +394,19 @@ generateSeries = function(objects) {
         }
     }
     
-    var companies = readArrayFromInputField(COMPANIES_INPUT_ID); // may be empty
-    var jobTitles = readArrayFromInputField(JOBTITLES_INPUT_ID); // may be empty
-    var minWage = parseInt($("#minimalWageInput").val()) || DEFAULT_MINIMAL_WAGE;
-    var maxWage = parseInt($("#maximalWageInput").val()) || DEFAULT_MAXIMAL_WAGE;
+    var inputs = readInputs();
     
     var series = [];
-    generateSeriesForCompanies(companies, jobTitles, minWage, maxWage, series);
+    generateSeriesForCompanies(inputs.companies, inputs.jobTitles, inputs.minWage, inputs.maxWage, series);
     return series;
+};
+
+firePixel = function() {
+    // sample url: logger.php?companies=test4&jobTitles=test5&minWage=test6&maxWage=test7
+    var data = readInputs();
+    data.companies = data.companies.join(ARRAY_ENTRIES_DELIMITER);
+    data.jobTitles = data.jobTitles.join(ARRAY_ENTRIES_DELIMITER);
+    $.get(LOGGER_URL, data);
 };
 
 onResearchClick = function(event) {
@@ -412,12 +416,14 @@ onResearchClick = function(event) {
         //var sorted = sortByWage(filtered);
         //var indexed = index(sorted);
         
+        firePixel();
+        
         var series = generateSeries(window.dataPoints);
         for (var i in series) {
             var objects = series[i].objects;
             var sorted = sortByWage(objects);
-            var indexed = index(sorted);
-            series[i].objects = indexed;
+            //var indexed = index(sorted);
+            series[i].objects = sorted;
         }
         
         //indexed.reverse().slice(0,10).map(function(x) { console.log(x.wage, x.index); });
@@ -428,11 +434,69 @@ onResearchClick = function(event) {
     }
 };
 
+insertTwitterButton = function() {
+    $("div#twitterButtonContainer").html(
+        '<a href="https://twitter.com/share" class="twitter-share-button" data-via="megaserg" data-size="large" data-count="none" data-dnt="true">Tweet</a>' +
+        "<script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');</script>"
+    );
+};
+
+wireClearButtons = function() {
+    $(document)
+        .on('mousemove', '.clearable',
+            function(e) {
+                if (this.offsetWidth - 25 < e.clientX - this.getBoundingClientRect().left) {
+                    $(this).addClass('onX');
+                }
+                else {
+                    $(this).removeClass('onX');
+                }
+            })
+        .on('click', '.onX',
+            function() {
+                $(this).removeClass('onX').val('');
+            });
+}
+
+onCompanyClick = function(event) {
+    var index = event.data.index;
+    updateArrayValue(companies[index].value, COMPANIES_INPUT_ID);
+};
+
+onJobTitleClick = function(event) {
+    var index = event.data.index;
+    updateArrayValue(jobTitles[index].value, JOBTITLES_INPUT_ID);
+};
+
 onPageLoad = function(event) {
+    var companiesList = $(COMPANIES_LIST_ID);
+    for (var i in companies) {
+        var company = companies[i];
+        var link = $("<a/>")
+            .text(company.view)
+            .attr("class", "pointy-link")
+            .click({index: i}, onCompanyClick);
+        var item = $("<li/>");
+        item.append(link);
+        companiesList.append(item);
+    }
+    
+    var jobTitlesList = $(JOBTITLES_LIST_ID);
+    for (var i in jobTitles) {
+        var jobTitle = jobTitles[i];
+        var link = $("<a/>")
+            .text(jobTitle.view)
+            .attr("class", "pointy-link")
+           .click({index: i}, onJobTitleClick);
+        var item = $("<li/>");
+        item.append(link);
+        jobTitlesList.append(item);
+    }
+    
     $(RESEARCH_BUTTON_ID).click(onResearchClick);
-    $(COMPANIES_SELECT_ID).change(onCompaniesSelectChange);
-    $(JOBTITLES_SELECT_ID).change(onJobTitlesSelectChange);
+    wireClearButtons();
     loadCSV();
+    insertTwitterButton();
 };
 
 $(window).load(onPageLoad);

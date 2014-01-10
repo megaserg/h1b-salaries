@@ -4,31 +4,43 @@
 ======== TODO ========
 + bucket scales: integer
 + circles behind bars?
-- hour/day-to-year conversion
++ hour/day-to-year conversion
 + multiple companies and titles with different colors
 + legend
-- brush?
-- dynamic population of selects?
++ dynamic population of selects
 + some padding for the dots so the min max aren't in corners
 - variable size of circles?
 - automatic refresh?
+- #links
++ hit counter
++ clear buttons
+- switch raw distribution/density
++ query tracker
++ realignment
++ same-option click issue: switch to custom dropdowns
 -->
 
 <html>
     <head>
-        <title>H-1B Salaries Distribution</title>
+        <title>H-1B Salaries Distribution 2013</title>
         <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <!-- Bootstrap -->
         <link href="bootstrap/css/bootstrap.min.css" rel="stylesheet">
         
         <style type="text/css">
+            .top-buffer {
+                margin-top: 10px;
+            }
             .bottom-buffer {
                 margin-bottom: 20px;
             }
             .twitter-share-button {
                 position: relative;
                 top: 3px;
+            }
+            .pointy-link {
+                cursor: pointer;
             }
         </style>
         
@@ -45,6 +57,17 @@
               font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
               font-size: 24px;
               font-weight: bold;
+            }
+        </style>
+
+        <style type="text/css">
+            .clearable {
+                background: url(clear.png) no-repeat right 10px center;
+                padding-right: 25px;
+                background-position: right 10px center;
+            }
+            .clearable.onX {
+                cursor: pointer;
             }
         </style>
 
@@ -109,12 +132,12 @@
         <div class="container">
             <div class="row bottom-buffer">
                 <div class="col-md-11 col-md-offset-1">
-                    <h2>H-1B Salaries Distribution</h2>
+                    <h2>H-1B Salaries Distribution 2013</h2>
                 </div>
             </div>
             
             <form class="form-horizontal" role="form">
-                <div class="form-group">
+          <!--      <div class="form-group">
                     <label for="companiesInput" class="col-md-2 control-label">
                         Companies
                     </label>
@@ -126,6 +149,8 @@
                             <option value="FACEBOOK">Facebook</option>
                             <option value="TWITTER">Twitter</option>
                             <option value="APPLE">Apple</option>
+                            <option value="CISCO SYSTEMS">Cisco</option>
+                            <option value="INTEL CORPORATION">Intel</option>
                             <option value="ROCKET FUEL">Rocket Fuel</option>
                             <option value="EVERNOTE">Evernote</option>
                             <option value="YELP">Yelp</option>
@@ -136,50 +161,85 @@
                         </select>
                     </div>
                     <div class="col-md-8">
-                        <input type="text" class="form-control" id="companiesInput" placeholder="Companies to research, comma-separated" />
+                        <input type="text" class="form-control clearable" id="companiesInput" placeholder="Companies to research, comma-separated" />
+                    </div>
+                </div>
+                -->
+                <div class="form-group">
+                    <div class="col-md-3">
+                        <div class="btn-group pull-right">
+                            <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" style="width : 100%">
+                                <b>Add some companies</b> <span class="caret"></span>
+                            </button>
+                            <ul id="companiesList" class="dropdown-menu" role="menu">
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="col-md-8">
+                        <input type="text" class="form-control clearable" id="companiesInput" placeholder="Companies to research, comma-separated" />
+                    </div>
+                    <div class="col-md-1">
                     </div>
                 </div>
             
-                <div class="form-group">
+           <!--     <div class="form-group">
                     <label for="jobTitlesInput" class="col-md-2 control-label">
                         Job titles
                     </label>
                     <div class="col-md-2">
                         <select id="jobTitlesSelect" class="form-control">
                             <option selected="selected" value="ALL_JOBTITLES">All</option>
-                            <option value="SOFTWARE/ENGINEER/DEVELOPER/PROGRAMMER/ENG">Engineers</option>
+                            <option value="SOFTWARE/ENGINEER/DEVELOPER/PROGRAMMER/ENG/ROCKET SCIENTIST">Engineers</option>
+                            <option value="SENIOR SOFTWARE/SENIOR ENGINEER/SENIOR DEVELOPER/SENIOR PROGRAMMER/SR. SOFTWARE/SR. ENGINEER/SR. DEVELOPER/SR. PROGRAMMER/SENIOR ROCKET SCIENTIST">Senior engineers</option>
+                            <option value="SCIENTIST">Scientists</option>
                             <option value="MANAGER">Managers</option>
                             <option value="CONSULTANT">Consultants</option>
                             <option value="CEO/CHIEF EXECUTIVE OFFICER">CEOs</option>
                         </select>
                     </div>
                     <div class="col-md-8">
-                        <input type="text" class="form-control" id="jobTitlesInput" placeholder="Job titles to research, comma-separated" />
+                        <input type="text" class="form-control clearable" id="jobTitlesInput" placeholder="Job titles to research, comma-separated" />
+                    </div>
+                </div>
+                -->
+                <div class="form-group">
+                    <div class="col-md-3">
+                        <div class="btn-group pull-right">
+                            <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown">
+                                <b>Add some job titles</b> <span class="caret"></span>
+                            </button>
+                            <ul id="jobTitlesList" class="dropdown-menu" role="menu">
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="col-md-8">
+                        <input type="text" class="form-control clearable" id="jobTitlesInput" placeholder="Job titles to research, comma-separated" />
+                    </div>
+                    <div class="col-md-1">
                     </div>
                 </div>
                 
                 <div class="form-group">
-                    <label for="minimalWageInput" class="col-md-2 control-label">
-                        Range to display
-                    </label>
+                    <div class="col-md-1">
+                    </div>
                     <div class="col-md-2">
                         <label for="minimalWageInput" class="control-label">
-                            from
+                        Range to display, $
                         </label>
                         <input type="text" class="form-control" id="minimalWageInput" placeholder="Minimal salary" value="80000" />
                     </div>
                     <div class="col-md-2">
                         <label for="maximalWageInput" class="control-label">
-                            to
+                            &nbsp;
                         </label>
                         <input type="text" class="form-control" id="maximalWageInput" placeholder="Maximal salary" value="200000" />
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-md-7">
                     </div>
                 </div>
                 
                 <div class="form-group">
-                    <div class="col-md-10 col-md-offset-2">
+                    <div class="col-md-11 col-md-offset-1">
                         <div class="progress-meter"></div>
                         <button type="button" id="researchButton" class="btn btn-primary" style="display: none">Research salaries</button>
                     </div>
@@ -190,41 +250,36 @@
                 <div id="svgContainer"></div>
             </div>
             
-            <div class="row footer bottom-buffer">
-                <div class="col-md-3 col-md-offset-2">
+            <div class="row footer top-buffer bottom-buffer">
+                <div class="col-md-3 col-md-offset-1">
                     <div class="h5" style="float: left">
                         <small>Made in the U.S.A. by <a href="http://sergey.serebryakov.info">megaserg</a>.</small><br />
                         <small>Built with jQuery, Bootstrap and d3.</small><br />
                         <small>Data source: <a href="http://www.foreignlaborcert.doleta.gov/performancedata.cfm#dis">US Department of Labor</a>, 2013.</small>
                     </div>
                 </div>
-                <div class="col-md-7">
-                    <div>
-                        <a href="https://twitter.com/share" class="twitter-share-button" data-via="megaserg" data-size="large" data-count="none" data-dnt="true">Tweet</a>
-                        <script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');</script>
+                <div class="col-md-8">
+                    <div id="twitterButtonContainer">
                     </div>
                 </div>
             </div>
         </div>
         
         <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
-        <script src="https://code.jquery.com/jquery.js"></script>
+        <script src="jquery/jquery-1.10.2.js"></script>
         <!-- Include all compiled plugins (below), or include individual files as needed -->
         <script src="bootstrap/js/bootstrap.js"></script>
         <script src="d3/d3.v3.js"></script>
         
-<!--         <script src="progress-meter.js"></script> -->
         <script src="plotting.js"></script>
+        
+        <script>
+          (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+          (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+          m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+          })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+          ga('create', 'UA-46849757-1', 'serebryakov.info');
+          ga('send', 'pageview');
+        </script>
     </body>
 </html>
-
-
-    <!--
-    <link type="text/css" rel="stylesheet" href="style.css" />
-    <link type="text/css" rel="stylesheet" href="plot.css" />
-    -->
-    <!--
-    <script type="text/javascript" src="d3/d3.js"></script>
-    <script type="text/javascript" src="d3/d3.csv.js"></script>
-    <script type="text/javascript" src="iris.js"></script>
-    -->
