@@ -11,13 +11,15 @@
 + some padding for the dots so the min max aren't in corners
 - variable size of circles?
 - automatic refresh?
-- #links
++ #links
 + hit counter
 + clear buttons
 - switch raw distribution/density
 + query tracker
 + realignment
 + same-option click issue: switch to custom dropdowns
++ qbaka tracking
++ enter key handling
 -->
 
 <html>
@@ -121,6 +123,48 @@
             }
         </style>
 
+        <script type="text/javascript">
+            window.qbaka || (function(a,c){
+                a.__qbaka_eh=a.onerror;
+                a.__qbaka_reports=[];
+                a.onerror=function() {
+                    a.__qbaka_reports.push(arguments);
+                    if(a.__qbaka_eh)
+                        try{
+                            a.__qbaka_eh.apply(a,arguments)
+                        }catch(b){}
+                };
+                a.onerror.qbaka=1;
+                a.qbaka={
+                    report:function(){
+                        a.__qbaka_reports.push([arguments, new Error()]);
+                    },
+                    customParams:{},
+                    set:function(a,b){
+                        qbaka.customParams[a]=b
+                    },
+                    exec:function(a){
+                        try{
+                            a()
+                        }
+                        catch(b){
+                            qbaka.reportException(b)
+                        }
+                    },
+                    reportException:function(){}
+                };
+                var b=c.createElement("script"),
+                    e=c.getElementsByTagName("script")[0],
+                    d=function(){e.parentNode.insertBefore(b,e)};
+                b.type="text/javascript";
+                b.async=!0;
+                b.src=('https:'==document.location.protocol?'https:':'http:')+'//cdn.qbaka.net/reporting.js';
+                "[object Opera]"==a.opera?c.addEventListener("DOMContentLoaded",d):d();
+                qbaka.key="c115e15a73834087b443a5cc55eb5d27"
+            })(window,document);
+            qbaka.options={autoStacktrace:1,trackEvents:1};
+        </script>
+        
         <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
         <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
         <!--[if lt IE 9]>
@@ -136,35 +180,7 @@
                 </div>
             </div>
             
-            <form class="form-horizontal" role="form">
-          <!--      <div class="form-group">
-                    <label for="companiesInput" class="col-md-2 control-label">
-                        Companies
-                    </label>
-                    <div class="col-md-2">
-                        <select id="companiesSelect" class="form-control">
-                            <option selected="selected" value="ALL_COMPANIES">All</option>
-                            <option value="MICROSOFT">Microsoft</option>
-                            <option value="GOOGLE">Google</option>
-                            <option value="FACEBOOK">Facebook</option>
-                            <option value="TWITTER">Twitter</option>
-                            <option value="APPLE">Apple</option>
-                            <option value="CISCO SYSTEMS">Cisco</option>
-                            <option value="INTEL CORPORATION">Intel</option>
-                            <option value="ROCKET FUEL">Rocket Fuel</option>
-                            <option value="EVERNOTE">Evernote</option>
-                            <option value="YELP">Yelp</option>
-                            <option value="AMAZON">Amazon</option>
-                            <option value="DROPBOX">Dropbox</option>
-                            <option value="FOURSQUARE">Foursquare</option>
-                            <option value="JETBRAINS">JetBrains</option>
-                        </select>
-                    </div>
-                    <div class="col-md-8">
-                        <input type="text" class="form-control clearable" id="companiesInput" placeholder="Companies to research, comma-separated" />
-                    </div>
-                </div>
-                -->
+            <form id="researchForm" class="form-horizontal" role="form">
                 <div class="form-group">
                     <div class="col-md-3">
                         <div class="btn-group pull-right">
@@ -182,26 +198,6 @@
                     </div>
                 </div>
             
-           <!--     <div class="form-group">
-                    <label for="jobTitlesInput" class="col-md-2 control-label">
-                        Job titles
-                    </label>
-                    <div class="col-md-2">
-                        <select id="jobTitlesSelect" class="form-control">
-                            <option selected="selected" value="ALL_JOBTITLES">All</option>
-                            <option value="SOFTWARE/ENGINEER/DEVELOPER/PROGRAMMER/ENG/ROCKET SCIENTIST">Engineers</option>
-                            <option value="SENIOR SOFTWARE/SENIOR ENGINEER/SENIOR DEVELOPER/SENIOR PROGRAMMER/SR. SOFTWARE/SR. ENGINEER/SR. DEVELOPER/SR. PROGRAMMER/SENIOR ROCKET SCIENTIST">Senior engineers</option>
-                            <option value="SCIENTIST">Scientists</option>
-                            <option value="MANAGER">Managers</option>
-                            <option value="CONSULTANT">Consultants</option>
-                            <option value="CEO/CHIEF EXECUTIVE OFFICER">CEOs</option>
-                        </select>
-                    </div>
-                    <div class="col-md-8">
-                        <input type="text" class="form-control clearable" id="jobTitlesInput" placeholder="Job titles to research, comma-separated" />
-                    </div>
-                </div>
-                -->
                 <div class="form-group">
                     <div class="col-md-3">
                         <div class="btn-group pull-right">
@@ -267,6 +263,7 @@
         
         <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
         <script src="jquery/jquery-1.10.2.js"></script>
+        <script src="jquery/jquery.ba-hashchange.js"></script>
         <!-- Include all compiled plugins (below), or include individual files as needed -->
         <script src="bootstrap/js/bootstrap.js"></script>
         <script src="d3/d3.v3.js"></script>
