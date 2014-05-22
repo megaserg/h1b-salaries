@@ -1,0 +1,21 @@
+======== TODO ========
++ bucket scales: integer
++ circles behind bars?
++ hour/day-to-year conversion
++ multiple companies and titles with different colors
++ legend
++ dynamic population of selects
++ some padding for the dots so the min max aren't in corners
+- variable size of circles?
+- automatic refresh?
++ #links
++ hit counter
++ clear buttons
+- switch raw distribution/density
++ query tracker
++ realignment
++ same-option click issue: switch to custom dropdowns
++ qbaka tracking
++ enter key handling
+- one point renders weird
+- autocomplete
