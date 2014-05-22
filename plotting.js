@@ -1,4 +1,14 @@
-window.dataPoints = null;
+/*
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * "The Beer-ware License":                                                    *
+ * <sergey@serebryakov.info> wrote this stuff. As long as you retain this      *
+ * notice you can do whatever you want with this stuff. If we meet some day,   *
+ * and you think this stuff is worth it, you can buy me a beer in return.      *
+ *                                                             -- megaserg     *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ */
+ 
+ window.dataPoints = null;
 
 COMPANIES_LIST_ID = "ul#companiesList";
 COMPANIES_INPUT_ID = "input#companiesInput";
@@ -8,15 +18,21 @@ MINWAGE_INPUT_ID = "input#minimalWageInput";
 MAXWAGE_INPUT_ID = "input#maximalWageInput";
 RESEARCH_BUTTON_ID = "button#researchButton";
 RESEARCH_FORM_ID = "form#researchForm";
+SHORTEN_BUTTON_ID = "button#shortenButton";
+SHORT_URL_DIV_ID = "div#shortUrlContainer";
+SHORT_URL_INPUT_ID = "input#shortUrlInput";
 
 SPECIAL_ALL_COMPANIES = "ALL_COMPANIES";
 SPECIAL_ALL_JOBTITLES = "ALL_JOBTITLES";
 
-ARRAY_ENTRIES_DELIMITER = ",";
+ARRAY_ENTRIES_DELIMITER = ";";
 SYNONYMS_DELIMITER = "/";
-HASH_DELIMITER = ";";
+HASH_DELIMITER = "*";
 
 LOGGER_URL = "logger.php";
+
+SHORTENER_API_KEY = "AIzaSyCBCTkImCptskPomcBMJgnvb-fbcLK5YM0";
+SHORTENER_API_URL = "https://www.googleapis.com/urlshortener/v1/url?key=";
 
 DEFAULT_MINIMAL_WAGE = 80000;
 DEFAULT_MAXIMAL_WAGE = 200000;
@@ -44,10 +60,11 @@ companies = [
 
 jobTitles = [
     {value: "ALL_JOBTITLES", view: "All"},
-    {value: "SOFTWARE/ENGINEER/DEVELOPER/PROGRAMMER/ENG/ROCKET SCIENTIST", view: "Engineers"},
+    {value: "SOFTWARE/ENGINEER/DEVELOPER/PROGRAMMER/ROCKET SCIENTIST", view: "Engineers"},
     {value: "SENIOR SOFTWARE/SENIOR ENGINEER/SENIOR DEVELOPER/SENIOR PROGRAMMER/SR. SOFTWARE/SR. ENGINEER/SR. DEVELOPER/SR. PROGRAMMER/SENIOR ROCKET SCIENTIST", view: "Senior engineers"},
     {value: "SCIENTIST", view: "Scientists"},
     {value: "MANAGER", view: "Managers"},
+    {value: "ACCOUNTANT", view: "Accountants"},
     {value: "CONSULTANT", view: "Consultants"},
     {value: "CEO/CHIEF EXECUTIVE OFFICER", view: "CEOs"},
 ];
@@ -97,9 +114,14 @@ getScales = function(series, dims, padding) {
     var maxWageInRow = function(row) { return d3.max(row.objects, getWage); };
     var minWage = d3.min(series, minWageInRow),
         maxWage = d3.max(series, maxWageInRow);
+    //var getNumber = function(o) {};
+    //var maxNumberInRow = function(row) { return d3.max(row.objects, getNumber); };
+    //var maxNumber = d3.max(series, maxNumberInRow);
     var wageMargin = (maxWage - minWage) * 0.03;
     var yDomain = [minWage - wageMargin, maxWage + wageMargin];
     var xDomain = [-0.01, 1.01];
+    //var xDomain = [minWage - wageMargin, maxWage + wageMargin];
+    //var yDomain = [0, maxNumber];
     var xRange = [padding.left, dims.width - padding.right];
     var yRange = [padding.top, dims.height - padding.bottom];
     var x = d3.scale.linear().domain(xDomain).range(xRange);
@@ -268,8 +290,8 @@ getPadding = function() {
     return padding;
 };
 
-plotSvg = function(dims) {
-    var svg = d3.select("#svgContainer")
+plotSvg = function(documentFragment, dims) {
+    var svg = d3.select(documentFragment)
         .append("svg:svg")
         .attr("width", dims.width)
         .attr("height", dims.height)
@@ -285,15 +307,15 @@ plotArea = function(svg) {
 };
 
 clearPlot = function() {
-    //d3.select("svg").remove();
-    if (window.svg) {
+    d3.select("svg").remove();
+    /*if (window.svg) {
         d3.selectAll(".axis").remove();
-        d3.selectAll(".legend").remove();
         d3.selectAll(".frame").remove();
         d3.selectAll("#infoLabel").remove();
+        d3.selectAll(".legend").remove();
         d3.selectAll(".area").remove();
         // not needed as we remove area: d3.selectAll(".dataPoint").remove();
-    }
+    }*/
 };
 
 plot = function(series) {
@@ -301,8 +323,10 @@ plot = function(series) {
     
     var dims = getDimensions();
     var padding = getPadding();
-    window.svg = window.svg || plotSvg(dims);
-    scales = getScales(series, dims, padding);
+    
+    var documentFragment = document.createDocumentFragment();
+    var svg = plotSvg(documentFragment, dims);
+    var scales = getScales(series, dims, padding);
     
     plotAxis(svg, dims, padding, scales);
     plotFrame(svg, dims, padding);
@@ -313,6 +337,7 @@ plot = function(series) {
         area = plotArea(svg);
         plotPoints(area, scales, series[i].objects, scales.color(i));
     }
+    $("#svgContainer").append(documentFragment);
 };
 
 readArrayFromInputField = function(id) {
@@ -324,7 +349,7 @@ readArrayFromInputField = function(id) {
 };
 
 writeArrayToInputField = function(id, value) {
-    $(id).val(value.join(ARRAY_ENTRIES_DELIMITER));
+    $(id).val(value.join(ARRAY_ENTRIES_DELIMITER + " "));
 };
 
 updateArrayValue = function(currentValue, inputID) {
@@ -433,7 +458,7 @@ constructHash = function() {
         inputs.maxWage,
     ];
     
-    return flatInputs.join(HASH_DELIMITER);
+    return encodeURI(flatInputs.join(HASH_DELIMITER));
 };
 
 firePixel = function() {
@@ -476,7 +501,7 @@ generateEmptyInputs = function() {
 
 // Hash is expected to be non-empty.
 parseHashToInputs = function() {
-    var hash = location.hash.replace(/^#/, "");
+    var hash = decodeURI(location.hash.replace(/^#/, ""));
     var elements = hash.split(HASH_DELIMITER);
     
     var inputs = {
@@ -491,6 +516,9 @@ parseHashToInputs = function() {
 
 initiateDraw = function() {
     if (window.dataPoints) {
+        $(SHORT_URL_DIV_ID).hide();
+        $(RESEARCH_BUTTON_ID).addClass("active");
+        //alert('active');
         firePixel();
         var series = generateSeries(window.dataPoints);
         for (var i in series) {
@@ -500,11 +528,34 @@ initiateDraw = function() {
         }
         //indexed.reverse().slice(0,10).map(function(x) { console.log(x.wage, x.index); });
         plot(series);
+        $(RESEARCH_BUTTON_ID).removeClass("active");
     }
     else {
         alert("Data is not loaded yet!");
     }
 };
+
+shortenUrl = function(longUrl, callback) {
+    var api_url = SHORTENER_API_URL + SHORTENER_API_KEY;
+    var data = "{\"longUrl\": \"" + longUrl + "\"}";
+    
+    $.ajax({
+        type: "POST",
+        url: api_url,
+        headers: {"Content-Type": "application/json"},
+        data: data,
+        dataType: "json",
+    }).done(callback);
+};
+
+onShortenClick = function(event) {
+    var url = location.href;
+    var callback = function(data) {
+        $(SHORT_URL_DIV_ID).show();
+        $(SHORT_URL_INPUT_ID).val(data.id);
+    };
+    shortenUrl(url, callback);
+}
 
 onCompanyClick = function(event) {
     var index = event.data.index;
@@ -577,6 +628,7 @@ onPageLoad = function(event) {
     $(window).hashchange(onHashChange);
     $(RESEARCH_FORM_ID).keypress(onFormKeypress);
     $(RESEARCH_BUTTON_ID).click(onResearchClick);
+    $(SHORTEN_BUTTON_ID).click(onShortenClick);
     wireClearButtons();
     insertTwitterButton();
 };

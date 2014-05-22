@@ -1,27 +1,4 @@
 <!DOCTYPE html>
-
-<!--
-======== TODO ========
-+ bucket scales: integer
-+ circles behind bars?
-+ hour/day-to-year conversion
-+ multiple companies and titles with different colors
-+ legend
-+ dynamic population of selects
-+ some padding for the dots so the min max aren't in corners
-- variable size of circles?
-- automatic refresh?
-+ #links
-+ hit counter
-+ clear buttons
-- switch raw distribution/density
-+ query tracker
-+ realignment
-+ same-option click issue: switch to custom dropdowns
-+ qbaka tracking
-+ enter key handling
--->
-
 <html>
     <head>
         <title>H-1B Salaries Distribution 2013</title>
@@ -44,6 +21,9 @@
             .pointy-link {
                 cursor: pointer;
             }
+            .short-url {
+                border-radius: 3px;
+            }
         </style>
         
         <style type="text/css">
@@ -64,15 +44,15 @@
 
         <style type="text/css">
             .clearable {
-                background: url(clear.png) no-repeat right 10px center;
+                background: url('clear.png') no-repeat;
                 padding-right: 25px;
-                background-position: right 10px center;
+                background-position: 99% 50%;
             }
             .clearable.onX {
                 cursor: pointer;
             }
         </style>
-
+        
         <style type="text/css">
             svg {
                 font-size: 14px;
@@ -123,48 +103,8 @@
             }
         </style>
 
-        <script type="text/javascript">
-            window.qbaka || (function(a,c){
-                a.__qbaka_eh=a.onerror;
-                a.__qbaka_reports=[];
-                a.onerror=function() {
-                    a.__qbaka_reports.push(arguments);
-                    if(a.__qbaka_eh)
-                        try{
-                            a.__qbaka_eh.apply(a,arguments)
-                        }catch(b){}
-                };
-                a.onerror.qbaka=1;
-                a.qbaka={
-                    report:function(){
-                        a.__qbaka_reports.push([arguments, new Error()]);
-                    },
-                    customParams:{},
-                    set:function(a,b){
-                        qbaka.customParams[a]=b
-                    },
-                    exec:function(a){
-                        try{
-                            a()
-                        }
-                        catch(b){
-                            qbaka.reportException(b)
-                        }
-                    },
-                    reportException:function(){}
-                };
-                var b=c.createElement("script"),
-                    e=c.getElementsByTagName("script")[0],
-                    d=function(){e.parentNode.insertBefore(b,e)};
-                b.type="text/javascript";
-                b.async=!0;
-                b.src=('https:'==document.location.protocol?'https:':'http:')+'//cdn.qbaka.net/reporting.js';
-                "[object Opera]"==a.opera?c.addEventListener("DOMContentLoaded",d):d();
-                qbaka.key="c115e15a73834087b443a5cc55eb5d27"
-            })(window,document);
-            qbaka.options={autoStacktrace:1,trackEvents:1};
-        </script>
-        
+        <script src="qbaka/qbaka.js"></script>
+
         <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
         <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
         <!--[if lt IE 9]>
@@ -192,7 +132,7 @@
                         </div>
                     </div>
                     <div class="col-md-8">
-                        <input type="text" class="form-control clearable" id="companiesInput" placeholder="Companies to research, comma-separated" />
+                        <input type="text" class="form-control clearable" id="companiesInput" placeholder="Companies to research, semicolon-separated" />
                     </div>
                     <div class="col-md-1">
                     </div>
@@ -209,7 +149,7 @@
                         </div>
                     </div>
                     <div class="col-md-8">
-                        <input type="text" class="form-control clearable" id="jobTitlesInput" placeholder="Job titles to research, comma-separated" />
+                        <input type="text" class="form-control clearable" id="jobTitlesInput" placeholder="Job titles to research, semicolon-separated, synonyms slash-separated" />
                     </div>
                     <div class="col-md-1">
                     </div>
@@ -237,7 +177,9 @@
                 <div class="form-group">
                     <div class="col-md-11 col-md-offset-1">
                         <div class="progress-meter"></div>
-                        <button type="button" id="researchButton" class="btn btn-primary" style="display: none">Research salaries</button>
+                        <button type="button" id="researchButton" class="btn btn-primary" style="display: none">
+                            Research salaries
+                        </button>
                     </div>
                 </div>
             </form>
@@ -254,8 +196,16 @@
                         <small>Data source: <a href="http://www.foreignlaborcert.doleta.gov/performancedata.cfm#dis">US Department of Labor</a>, 2013.</small>
                     </div>
                 </div>
-                <div class="col-md-8">
+                <div class="col-md-2">
                     <div id="twitterButtonContainer">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <button type="button" id="shortenButton" class="btn btn-info btn-sm">
+                        Get short link 
+                    </button>
+                    <div id="shortUrlContainer" style="display: none">
+                        <input type="text" id="shortUrlInput" />
                     </div>
                 </div>
             </div>
