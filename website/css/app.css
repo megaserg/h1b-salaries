@@ -1,0 +1,90 @@
+.top-buffer {
+    margin-top: 10px;
+}
+.bottom-buffer {
+    margin-bottom: 20px;
+}
+.twitter-share-button {
+    position: relative;
+    top: 3px;
+}
+.pointy-link {
+    cursor: pointer;
+}
+.short-url {
+    border-radius: 3px;
+}
+
+
+.progress-meter .background {
+  fill: #ccc;
+}
+
+.progress-meter .foreground {
+  fill: #000;
+}
+
+.progress-meter {
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 24px;
+  font-weight: bold;
+}
+
+
+.clearable {
+    background: url('clear.png') no-repeat;
+    padding-right: 25px;
+    background-position: 99% 50%;
+}
+.clearable.onX {
+    cursor: pointer;
+}
+
+
+svg {
+    font-size: 14px;
+}
+
+.axis {
+    shape-rendering: crispEdges;
+}
+
+.axis path {
+    display: none;
+}
+.axis line {
+    stroke: #ddd;
+    stroke-width: .5px;
+}
+
+rect.extent {
+    fill: #000;
+    fill-opacity: .125;
+    stroke: #fff;
+}
+
+rect.frame {
+    fill: #fff;
+    fill-opacity: 0;
+    stroke: #aaa;
+}
+
+circle {
+    /*fill: #8888CC;*/
+    /*fill-opacity: .5;*/
+}
+
+.legend circle {
+    fill-opacity: 1;
+}
+
+.legend text {
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-size: 18px;
+    font-weight: bold;
+    fill: #555;
+}
+
+.area text {
+    pointer-events: none;
+}
