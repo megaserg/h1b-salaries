@@ -1,3 +1,8 @@
+### Application-specific ignores ###
+raw_data
+access_logs
+
+################################################################################
 
 # Created by https://www.gitignore.io/api/osx
 
