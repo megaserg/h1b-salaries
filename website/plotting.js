@@ -7,7 +7,7 @@
  *                                                             -- megaserg     *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  */
- 
+
  window.dataPoints = null;
 
 COMPANIES_LIST_ID = "ul#companiesList";
@@ -88,7 +88,7 @@ loadCSV = function(drawAfterLoad) {
                 var progress = d3.event.loaded / DATA_FILE_SIZE;
                 var meter = $(".progress-meter");
                 meter.text("Loading data (" + formatPercent(progress) + ")...");
-                //console.log(d3.event.loaded, DATA_FILE_SIZE, progress, formatPercent(progress)); 
+                //console.log(d3.event.loaded, DATA_FILE_SIZE, progress, formatPercent(progress));
             })
         .get(function(error, objects) {
                 window.dataPoints = objects;
@@ -104,7 +104,7 @@ sortByWage = function(objects) {
     var compareWage = function(a, b) {
         return a.wage - b.wage;
     };
-    
+
     return objects.sort(compareWage);
 }
 
@@ -155,24 +155,24 @@ plotAxis = function(svg, dims, padding, scales) {
         .attr("transform", "translate(" + (dims.width - padding.right) + ",0)")
         .call(yAxis);
 };
-                    
+
 plotLegend = function(svg, dims, scales, series) {
     var n = series.length;
-    
+
     var legend = svg.selectAll("g.legend")
         .data(series)
         .enter()
         .append("svg:g")
         .classed("legend", true)
         .attr("transform", function(d, i) {
-            return "translate(" + (dims.width - 380) + "," + (dims.height - n * 20 - 30 + i * 20) + ")"; 
+            return "translate(" + (dims.width - 380) + "," + (dims.height - n * 20 - 30 + i * 20) + ")";
         });
 
     legend.append("svg:circle")
         //.attr("class", String)
         .attr("r", 5)
         .attr("fill", function(d, i) { return scales.color(i); });
-    
+
     var abbreviate = function(str) {
         var MAX_LENGTH = 13;
         if (str.length > MAX_LENGTH) {
@@ -192,7 +192,7 @@ plotInfoLabel = function(svg) {
         .append("svg:text")
         .attr({"id": "infoLabel", "x": 100, "y": 50})
         .style({"font-size": "24px", "font-weight": "bold", "fill": "#bbb"});
-        
+
     label.append("svg:tspan")
         .attr({"id": "employerLabel", "x": 100, "dy": 27});
     label.append("svg:tspan")
@@ -223,7 +223,7 @@ plotPoints = function(where, scales, objects, color) {
 
     var circ = where.selectAll("circle")
         .data(objects);
-    
+
     circ.enter().insert("svg:circle")
         .attr("class", "dataPoint")
         //.attr("cx", function(d) { return scales.x(d.wage); })
@@ -253,7 +253,7 @@ plotPoints = function(where, scales, objects, color) {
             d3.select(this)
                 .attr("r", 3);
         });
-        
+
     /*circ.transition()
         .duration(1000)
         .attr("cx", function(d) { return scales.x(d.index); })
@@ -274,7 +274,7 @@ plotPoints = function(where, scales, objects, color) {
                 .duration(200)
                 .style("opacity", 0);
         });*/
-        
+
     circ.exit()
         .remove();
 };
@@ -320,14 +320,14 @@ clearPlot = function() {
 
 plot = function(series) {
     clearPlot();
-    
+
     var dims = getDimensions();
     var padding = getPadding();
-    
+
     var documentFragment = document.createDocumentFragment();
     var svg = plotSvg(documentFragment, dims);
     var scales = getScales(series, dims, padding);
-    
+
     plotAxis(svg, dims, padding, scales);
     plotFrame(svg, dims, padding);
     plotInfoLabel(svg);
@@ -367,7 +367,7 @@ readInputs = function() {
     if (isNaN(minWage)) minWage = DEFAULT_MINIMAL_WAGE;
     var maxWage = parseInt($(MAXWAGE_INPUT_ID).val(), 10);
     if (isNaN(maxWage)) maxWage = DEFAULT_MAXIMAL_WAGE;
-    
+
     return {
         "companies": companies,
         "jobTitles": jobTitles,
@@ -409,14 +409,14 @@ generateSeries = function(objects) {
         var filterCriteria = function(object) {
             return isQualifying(object, company, jobTitle, minWage, maxWage);
         };
-        
+
         var serie = {};
         serie.objects = objects.filter(filterCriteria);
         serie.company = company;
         serie.jobTitle = jobTitle;
         return serie;
     };
-    
+
     var generateSeriesForJobTitles = function(company, jobTitles, minWage, maxWage, series) {
         if (jobTitles.length > 0) {
             for (var j in jobTitles) {
@@ -428,7 +428,7 @@ generateSeries = function(objects) {
             series.push(createNewSeries(company, SPECIAL_ALL_JOBTITLES, minWage, maxWage));
         }
     };
-    
+
     var generateSeriesForCompanies = function(companies, jobTitles, minWage, maxWage, series) {
         if (companies.length > 0) {
             for (var i in companies) {
@@ -440,9 +440,9 @@ generateSeries = function(objects) {
             generateSeriesForJobTitles(SPECIAL_ALL_COMPANIES, jobTitles, minWage, maxWage, series);
         }
     }
-    
+
     var inputs = readInputs();
-    
+
     var series = [];
     generateSeriesForCompanies(inputs.companies, inputs.jobTitles, inputs.minWage, inputs.maxWage, series);
     return series;
@@ -450,14 +450,14 @@ generateSeries = function(objects) {
 
 constructHash = function() {
     var inputs = readInputs();
-    
+
     var flatInputs = [
         inputs.companies.join(ARRAY_ENTRIES_DELIMITER),
         inputs.jobTitles.join(ARRAY_ENTRIES_DELIMITER),
         inputs.minWage,
         inputs.maxWage,
     ];
-    
+
     return encodeURI(flatInputs.join(HASH_DELIMITER));
 };
 
@@ -472,7 +472,7 @@ firePixel = function() {
 onResearchClick = function(event) {
     location.hash = constructHash();
 }
- 
+
 onHashChange = function() {
     if (isHashEmpty()) {
         writeInputs(generateEmptyInputs());
@@ -495,7 +495,7 @@ generateEmptyInputs = function() {
         "minWage": DEFAULT_MINIMAL_WAGE,
         "maxWage": DEFAULT_MAXIMAL_WAGE,
     };
-    
+
     return inputs;
 };
 
@@ -503,14 +503,14 @@ generateEmptyInputs = function() {
 parseHashToInputs = function() {
     var hash = decodeURI(location.hash.replace(/^#/, ""));
     var elements = hash.split(HASH_DELIMITER);
-    
+
     var inputs = {
         "companies": elements[0],
         "jobTitles": elements[1],
         "minWage": elements[2],
         "maxWage": elements[3],
     };
-    
+
     return inputs;
 };
 
@@ -538,7 +538,7 @@ initiateDraw = function() {
 shortenUrl = function(longUrl, callback) {
     var api_url = SHORTENER_API_URL + SHORTENER_API_KEY;
     var data = "{\"longUrl\": \"" + longUrl + "\"}";
-    
+
     $.ajax({
         type: "POST",
         url: api_url,
@@ -615,7 +615,7 @@ insertTwitterButton = function() {
 onPageLoad = function(event) {
     populateDropdown(COMPANIES_LIST_ID, companies, onCompanyClick);
     populateDropdown(JOBTITLES_LIST_ID, jobTitles, onJobTitleClick);
-    
+
     if (isHashEmpty()) {
         writeInputs(generateEmptyInputs());
         loadCSV(false);
@@ -624,7 +624,7 @@ onPageLoad = function(event) {
         writeInputs(parseHashToInputs());
         loadCSV(true);
     }
-    
+
     $(window).hashchange(onHashChange);
     $(RESEARCH_FORM_ID).keypress(onFormKeypress);
     $(RESEARCH_BUTTON_ID).click(onResearchClick);
