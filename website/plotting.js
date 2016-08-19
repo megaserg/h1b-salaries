@@ -8,7 +8,6 @@
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  */
 
- window.dataPoints = null;
 
 COMPANIES_LIST_ID = "ul#companiesList";
 COMPANIES_INPUT_ID = "input#companiesInput";
@@ -34,8 +33,8 @@ LOGGER_URL = "logger.php";
 SHORTENER_API_KEY = "AIzaSyCBCTkImCptskPomcBMJgnvb-fbcLK5YM0";
 SHORTENER_API_URL = "https://www.googleapis.com/urlshortener/v1/url?key=";
 
-DEFAULT_MINIMAL_WAGE = 80000;
-DEFAULT_MAXIMAL_WAGE = 200000;
+DEFAULT_MINIMAL_WAGE = 50000;
+DEFAULT_MAXIMAL_WAGE = 250000;
 
 DATA_FILE_SIZE = 26431268;
 
@@ -45,7 +44,7 @@ companies = [
     {value: "GOOGLE", view: "Google"},
     {value: "FACEBOOK", view: "Facebook"},
     {value: "TWITTER", view: "Twitter"},
-    {value: "APPLE", view: "Apple"},
+    {value: "APPLE INC", view: "Apple"},
     {value: "CISCO SYSTEMS", view: "Cisco"},
     {value: "INTEL CORPORATION", view: "Intel"},
     {value: "ORACLE AMERICA", view: "Oracle"},
@@ -69,47 +68,84 @@ jobTitles = [
     {value: "CEO/CHIEF EXECUTIVE OFFICER", view: "CEOs"},
 ];
 
-loadCSV = function(drawAfterLoad) {
-    var formatPercent = d3.format(".0%");
+DICTIONARY_FILE_NAME = "h1b_2013-2016.dict";
 
-    var objects = d3.csv("data/H-1B_FY13_Q4_filtered.csv")
-        .row(function(entry) {
-                 return {
-                     employer: entry.Employer,
-                     jobTitle: entry.JobTitle,
-                     wage: +entry.Wage,
-                     city: entry.City,
-                     state: entry.State,
-                     //jobField: entry.JobField
-                 };
-             })
-        .on("progress",
-            function() {
-                var progress = d3.event.loaded / DATA_FILE_SIZE;
-                var meter = $(".progress-meter");
-                meter.text("Loading data (" + formatPercent(progress) + ")...");
-                //console.log(d3.event.loaded, DATA_FILE_SIZE, progress, formatPercent(progress));
-            })
-        .get(function(error, objects) {
-                window.dataPoints = objects;
-                $(".progress-meter").hide();
-                $(RESEARCH_BUTTON_ID).show();
-                if (drawAfterLoad) {
-                    initiateDraw();
-                }
-             });
+COMPRESSED_DATA_FILES = 
+    { 2013: "h1b_2013_filtered.csv.compressed"
+    , 2014: "h1b_2014_filtered.csv.compressed"
+    , 2015: "h1b_2015_filtered.csv.compressed"
+    , 2016: "h1b_2016_filtered.csv.compressed"
+    };
+
+
+window.dataPoints = {};
+window.dataFilesToLoad = 4; //COMPRESSED_DATA_FILES.length;
+
+
+loadDictionary = function loadDictionary(callback) {
+    $.get("/data/" + DICTIONARY_FILE_NAME)
+        .done(function saveDictionary(dictionary) {
+            window.dictionary = dictionary.split("\n");
+            console.log(window.dictionary);
+            callback(window.dictionary);
+        });
 };
+
+receivedDictionary = function receivedDictionary(dict) {
+
+    var loadCSV = function loadCSV(year, filename, drawAfterLoad) {
+        var formatPercent = d3.format(".0%");
+
+        d3.csv("/data/" + filename)
+        // var objects = d3.csv("data/H-1B_FY13_Q4_filtered.csv")
+            .row(function(entry) {
+                     return {
+                         employer: dict[entry.Employer],
+                         jobTitle: dict[entry.JobTitle],
+                         wageFrom: +dict[entry.WageFrom],
+                         wageTo: +dict[entry.WageTo],
+                         city: dict[entry.City],
+                         state: dict[entry.State],
+                         //jobField: entry.JobField
+                     };
+                 })
+            .on("progress",
+                function() {
+                    var progress = d3.event.loaded / DATA_FILE_SIZE;
+                    var meter = $(".progress-meter");
+                    meter.text("Loading data (" + formatPercent(progress) + ")...");
+                    //console.log(d3.event.loaded, DATA_FILE_SIZE, progress, formatPercent(progress));
+                })
+            .get(function(error, objects) {
+                    console.log("Loaded year " + year);
+                    window.dataPoints[year] = objects;
+                    window.dataFilesToLoad--;
+                    $(".progress-meter").hide();
+                    $(RESEARCH_BUTTON_ID).show();
+                    if (drawAfterLoad) {
+                        initiateDraw();
+                    }
+                 });
+    };
+
+    for (var year in COMPRESSED_DATA_FILES) {
+        var filename = COMPRESSED_DATA_FILES[year];
+        loadCSV(year, filename, false);
+    }
+}
+
+
 
 sortByWage = function(objects) {
     var compareWage = function(a, b) {
-        return a.wage - b.wage;
+        return (a.wageFrom + a.wageTo) - (b.wageFrom + b.wageTo);
     };
 
     return objects.sort(compareWage);
 }
 
 getScales = function(series, dims, padding) {
-    var getWage = function(o) { return o.wage; };
+    var getWage = function(o) { return (o.wageFrom + o.wageTo) / 2; };
     var minWageInRow = function(row) { return d3.min(row.objects, getWage); };
     var maxWageInRow = function(row) { return d3.max(row.objects, getWage); };
     var minWage = d3.min(series, minWageInRow),
@@ -184,7 +220,7 @@ plotLegend = function(svg, dims, scales, series) {
     legend.append("svg:text")
         .attr("x", 12)
         .attr("dy", ".31em")
-        .text(function(d) { return abbreviate(d.jobTitle) + " at " + d.company; });
+        .text(function(d) { return abbreviate(d.jobTitle) + " at " + d.company + " " + d.year; });
 };
 
 plotInfoLabel = function(svg) {
@@ -221,23 +257,34 @@ plotPoints = function(where, scales, objects, color) {
     var n = objects.length;
     var formatWage = d3.format("$,d");
 
-    var circ = where.selectAll("circle")
+    var circ1 = where.selectAll("circle")
         .data(objects);
+
+    circ1.enter().insert("svg:line")
+        .attr("x1", function(d, i) { return scales.x((i+1) / n); })
+        .attr("y1", function(d) { return scales.y(d.wageFrom); })
+        .attr("x2", function(d, i) { return scales.x((i+1) / n); })
+        .attr("y2", function(d) { return scales.y(d.wageTo); })
+        .attr("stroke-width", 1)
+        .attr("stroke", d3.rgb(color).brighter(0.5));
+
+    var circ = where.selectAll("circle")
+            .data(objects);
 
     circ.enter().insert("svg:circle")
         .attr("class", "dataPoint")
         //.attr("cx", function(d) { return scales.x(d.wage); })
         //.attr("cy", function(d, i) { return scales.y((i+1) / n); })
         .attr("cx", function(d, i) { return scales.x((i+1) / n); })
-        .attr("cy", function(d) { return scales.y(d.wage); })
+        .attr("cy", function(d) { return scales.y((d.wageFrom + d.wageTo) / 2); })
         .attr("fill", color)
         .attr("r", 3)
         .style("cursor", "pointer")
-        .on("mouseover", function(d) {
+        .on("mouseover", function showInfoLabel(d) {
             d3.select("svg #employerLabel").text(d.employer);
             d3.select("svg #jobTitleLabel").text(d.jobTitle);
             d3.select("svg #cityStateLabel").text(d.city + ", " + d.state);
-            d3.select("svg #wageLabel").text(formatWage(d.wage));
+            d3.select("svg #wageLabel").text(formatWage((d.wageFrom + d.wageTo) / 2));
             d3.select("svg #infoLabel")
                 .transition()
                 .duration(50)
@@ -245,7 +292,7 @@ plotPoints = function(where, scales, objects, color) {
             d3.select(this)
                 .attr("r", 5);
         })
-        .on("mouseout", function(d) {
+        .on("mouseout", function hideInfoLabel(d) {
             d3.select("svg #infoLabel")
                 .transition()
                 .duration(200)
@@ -384,11 +431,13 @@ writeInputs = function(inputs) {
     $(MAXWAGE_INPUT_ID).val(inputs.maxWage);
 };
 
-generateSeries = function(objects) {
+generateSeriesForYear = function(year, objects) {
     var createNewSeries = function(company, jobTitle, minWage, maxWage) {
+        var getWage = function getWage(o) { return (o.wageFrom + o.wageTo) / 2; };
+
         var isQualifying = function(obj, company, jobTitle, minWage, maxWage) {
             // check wages first
-            if (minWage <= obj.wage && obj.wage <= maxWage) {
+            if (minWage <= getWage(obj) && getWage(obj) <= maxWage) {
                 // now check company
                 if (company == SPECIAL_ALL_COMPANIES || obj.employer.indexOf(company) != -1) {
                     // now check titles
@@ -414,6 +463,7 @@ generateSeries = function(objects) {
         serie.objects = objects.filter(filterCriteria);
         serie.company = company;
         serie.jobTitle = jobTitle;
+        serie.year = year;
         return serie;
     };
 
@@ -515,12 +565,18 @@ parseHashToInputs = function() {
 };
 
 initiateDraw = function() {
-    if (window.dataPoints) {
+    if (window.dataFilesToLoad == 0) {
         $(SHORT_URL_DIV_ID).hide();
         $(RESEARCH_BUTTON_ID).addClass("active");
         //alert('active');
         firePixel();
-        var series = generateSeries(window.dataPoints);
+        
+        var series = [];
+        for (var year in window.dataPoints) {
+            series = series.concat(generateSeriesForYear(year, window.dataPoints[year]));
+        }
+        console.log(series);
+
         for (var i in series) {
             var objects = series[i].objects;
             var sorted = sortByWage(objects);
@@ -612,17 +668,25 @@ insertTwitterButton = function() {
     );
 };
 
+enableAllTooltips = function() {
+    $(function () {
+        $('[data-toggle="tooltip"]').tooltip()
+    });
+};
+
 onPageLoad = function(event) {
     populateDropdown(COMPANIES_LIST_ID, companies, onCompanyClick);
     populateDropdown(JOBTITLES_LIST_ID, jobTitles, onJobTitleClick);
 
     if (isHashEmpty()) {
         writeInputs(generateEmptyInputs());
-        loadCSV(false);
+        loadDictionary(receivedDictionary);
+        // loadCSV(false);
     }
     else {
         writeInputs(parseHashToInputs());
-        loadCSV(true);
+        loadDictionary(receivedDictionary);
+        // loadCSV(true);
     }
 
     $(window).hashchange(onHashChange);
@@ -631,6 +695,7 @@ onPageLoad = function(event) {
     $(SHORTEN_BUTTON_ID).click(onShortenClick);
     wireClearButtons();
     insertTwitterButton();
+    enableAllTooltips();
 };
 
 $(window).load(onPageLoad);

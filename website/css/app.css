@@ -32,7 +32,7 @@
 
 
 .clearable {
-    background: url('clear.png') no-repeat;
+    background: url('/clear.png') no-repeat;
     padding-right: 25px;
     background-position: 99% 50%;
 }

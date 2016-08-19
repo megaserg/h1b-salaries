@@ -19,7 +19,7 @@
         <div class="container">
             <div class="row bottom-buffer">
                 <div class="col-md-11 col-md-offset-1">
-                    <h2>H-1B Salaries Distribution 2013</h2>
+                    <h2>H-1B Salaries Distribution</h2>
                 </div>
             </div>
 
@@ -62,18 +62,60 @@
                     <div class="col-md-1">
                     </div>
                     <div class="col-md-2">
-                        <label for="minimalWageInput" class="control-label">
-                        Range to display, $
+                        <label for="minimalWageInput" class="control-label pull-right">
+                            Range to display, $
                         </label>
-                        <input type="text" class="form-control" id="minimalWageInput" placeholder="Minimal salary" value="80000" />
                     </div>
                     <div class="col-md-2">
-                        <label for="maximalWageInput" class="control-label">
-                            &nbsp;
-                        </label>
-                        <input type="text" class="form-control" id="maximalWageInput" placeholder="Maximal salary" value="200000" />
+                        <input type="text" class="form-control" id="minimalWageInput" placeholder="Minimal salary" value="50000" maxlength="8" />
                     </div>
-                    <div class="col-md-7">
+                    <div class="col-md-2">
+                        <input type="text" class="form-control" id="maximalWageInput" placeholder="Maximal salary" value="250000" maxlength="8" />
+                    </div>
+                </div>
+
+                <div class="form-group">    
+                    <div class="col-md-3">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="radio-inline">
+                            <input type="radio" name="showLineRadio" value="from"> Show proposed
+                        </label>
+                        <label class="radio-inline">
+                            <input type="radio" name="showLineRadio" value="avg"> Show average
+                        </label>
+                        <label class="radio-inline">
+                            <input type="radio" name="showLineRadio" value="line" checked="checked"> Show range
+                        </label>
+                    </div>
+                    <div class="col-md-2">
+                        <button type="button" class="btn btn-default btn-sm" data-toggle="tooltip" data-placement="top" title="Some H-1B cases (~20%) include a 'Maximum proposed wage rate' in addition to 'Employer’s proposed wage rate'. In this case, you can choose whether to show the proposed one, the average of two, or the whole range.">
+                            <span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <div class="col-md-1">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="control-label pull-right">
+                            Fiscal year
+                        </label>
+                    </div>
+                    <div class="col-md-9">
+                        <label class="checkbox-inline">
+                            <input type="checkbox" id="show2016Checkbox" value="show2016" checked="true" /> 2016
+                        </label>
+                        <label class="checkbox-inline">
+                            <input type="checkbox" id="show2015Checkbox" value="show2015" /> 2015
+                        </label>
+                        <label class="checkbox-inline">
+                            <input type="checkbox" id="show2014Checkbox" value="show2014" /> 2014
+                        </label>
+                        <label class="checkbox-inline">
+                            <input type="checkbox" id="show2013Checkbox" value="show2013" /> 2013
+                        </label>
                     </div>
                 </div>
 
@@ -92,18 +134,19 @@
             </div>
 
             <div class="row footer top-buffer bottom-buffer">
-                <div class="col-md-3 col-md-offset-1">
+                <div class="col-md-4 col-md-offset-1">
                     <div class="h5" style="float: left">
                         <small>Made in the U.S.A. by <a href="http://sergey.serebryakov.info">megaserg</a>.</small><br />
                         <small>Built with jQuery, Bootstrap and d3.</small><br />
-                        <small>Data source: <a href="http://www.foreignlaborcert.doleta.gov/performancedata.cfm#dis">US Department of Labor</a>, 2013.</small>
+                        <small>Data source: <a href="http://www.foreignlaborcert.doleta.gov/performancedata.cfm#dis">US Department of Labor</a>, 2013&ndash;2016.</small><br />
+                        <small>Fiscal year starts on October 1 and ends on September 30.</small>
                     </div>
                 </div>
-                <div class="col-md-2">
+                <div class="col-md-1">
                     <div id="twitterButtonContainer">
                     </div>
                 </div>
-                <div class="col-md-6">
+                <div class="col-md-1">
                     <button type="button" id="shortenButton" class="btn btn-info btn-sm">
                         Get short link
                     </button>
